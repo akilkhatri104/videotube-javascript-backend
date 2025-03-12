@@ -32,7 +32,7 @@ const registerUser = asyncHandler( async (req,res) => {
     // return res
 
     const {fullName,email,username,password} = req.body
-    console.log("Request Body: ",req.body);
+    // console.log("Request Body: ",req.body);
     
     if (
         [fullName,email,username,password].some( field => field?.trim() === "" )
@@ -47,10 +47,11 @@ const registerUser = asyncHandler( async (req,res) => {
     if(existingUser){
         throw new ApiError(409,"User with email or username already exists")
     }
+    // console.log('Request Object: ',req);
     
-    // console.log("Request Files: ",req.files);
+    console.log("Request Files: ",req.files);
     
-    const avatarLocalPath = req.files?.avatar[0]?.path
+    const avatarLocalPath = req.files?.avatar?.[0]?.path
     // const coverImageLocalPath = req.files?.coverImage[0]?.path
 
     let coverImageLocalPath
