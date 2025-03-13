@@ -1,10 +1,9 @@
 import {asyncHandler} from '../utils/asyncHandler.js'
 import ApiError from '../utils/ApiError.js'
 import { User } from '../models/user.model.js'
-import { uploadOnCloudinary } from '../utils/cloudinary.js'
+import { deleteFromCloudinary, uploadOnCloudinary } from '../utils/cloudinary.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
 import jwt from 'jsonwebtoken'
-import { availableMemory } from 'process'
 
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
@@ -230,7 +229,14 @@ const refreshAccessToken = asyncHandler( async(req,res) => {
 const changeCurrentPassword = asyncHandler( async(req,res) => {
     const {oldPassword,newPassword} = req.body
     
+    if(!req.user){
+        throw new ApiError(400,'Did not receive User in request body')
+    }
+
     const user = await User.findById(req.user?._id)
+    if(!user){
+        throw new ApiError(500,'Error while fetching user from DB')
+    }
     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
 
     if(!isPasswordCorrect){
@@ -250,7 +256,11 @@ const changeCurrentPassword = asyncHandler( async(req,res) => {
 const getCurrentUser = asyncHandler( async(req,res) => {
     return res
     .status(200)
-    .json(200,req.user,'Current user fetched successfully')
+    .json(
+        new ApiResponse(
+            200,req.user,'Current user fetched successfully'
+        )
+    )
 } )
 
 const updateAccountDetails = asyncHandler(async(req,res) => {
@@ -287,12 +297,19 @@ const updateUserAvatar = asyncHandler(async(req,res) => {
         new ApiError(400,"Avatar file is missing")
     }
 
+    if(!req.user){
+        new ApiError(400,'User not found')
+    }
+    console.log("Request User",req.user.username);
+    
+    const oldAvatarToBeDeleted = req.user.avatar
     const avatar = await uploadOnCloudinary(newAvatarLocalPath)
 
     if(!avatar.url){
-        new ApiError(400,'Error while uploading avatar')
+        new ApiError(500,'Error while uploading avatar')
     }
-
+    console.log("URL of new avatar on Cloudinary: ",avatar.url);
+    
     const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
@@ -303,6 +320,15 @@ const updateUserAvatar = asyncHandler(async(req,res) => {
         {new:true}
     ).select('-password')
 
+    if(!user){
+        throw new ApiError(500,'Error while finding User from database')
+    }
+    console.log("User fetched from DB: ",user);
+    
+
+    const response = await deleteFromCloudinary(oldAvatarToBeDeleted)
+    console.log("Cloudinary deletion reponse: ",response);
+    
     return res
     .status(200)
     .json(
@@ -321,6 +347,7 @@ const updateUserCoverImage = asyncHandler(async(req,res) => {
         throw new ApiError(400,'Cover image is missing')
     }
 
+    const oldCoverImageToBeDeleted = req.user.coverImage
     const coverImage = await uploadOnCloudinary(coverImage)
 
     if(!coverImage.url){
@@ -336,6 +363,12 @@ const updateUserCoverImage = asyncHandler(async(req,res) => {
         },
         {new:true}
     ).select('-password')
+    
+    if(!user){
+        throw new ApiError(500,'Error while setting Cover Image or fetching user in DB')
+    }
+
+    const response = await deleteFromCloudinary(oldCoverImageToBeDeleted)
 
     return res
     .status(200)
