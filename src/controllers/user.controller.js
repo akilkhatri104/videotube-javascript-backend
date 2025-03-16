@@ -271,6 +271,14 @@ const updateAccountDetails = asyncHandler(async(req,res) => {
         throw new ApiError(400,'Both fields are required')
     }
 
+    const checkUserExists = User.findOne({email})
+    console.log("Check: ",checkUserExists.email);
+    
+
+    if(checkUserExists.email === email){
+        throw new ApiError(400,'Email already in use')
+    }
+
     const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
@@ -349,13 +357,13 @@ const updateUserCoverImage = asyncHandler(async(req,res) => {
     }
 
     const oldCoverImageToBeDeleted = req.user.coverImage
-    const coverImage = await uploadOnCloudinary(coverImage)
+    const coverImage = await uploadOnCloudinary(newCoverImageLocalPath)
 
     if(!coverImage.url){
         throw new ApiError(500,'Error while uploading Cover Image on Cloudinary')
     }
 
-    const user = User.findByIdAndUpdate(
+    const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set:{
@@ -422,7 +430,7 @@ const getUserChannelProfile = asyncHandler(async(req,res) => {
                 isSubscribed: {
                     $cond :{
                         if: {$in: [req.user?._id,"$subscribers.subscriber"]},
-                        than: true,
+                        then: true,
                         else: false
                     }
                 }
@@ -464,39 +472,42 @@ const getWatchHistory = asyncHandler(async(req,res) => {
             $match: {
                 _id: new mongoose.Types.ObjectId(req.user._id)
             },
+            
+        },
+        {
             $lookup: {
-                    from: "videos",
-                    localField: "watchHistory",
-                    foreignField: "_id",
-                    as: "watchHistory",
-                    pipeline: [
-                        {
-                            $lookup: {
-                                from: 'users',
-                                localField: "owner",
-                                foreignField: "_id",
-                                as: "owner",
-                                pipeline: [
-                                    {
-                                        $project: {
-                                            fullName: 1,
-                                            username: 1,
-                                            avatar: 1
-                                        }
+                from: "videos",
+                localField: "watchHistory",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: 'users',
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1
                                     }
-                                ]
-                            }
-                        },
-                        {
-                            $addFields:{
-                                owner: {
-                                    $first: "$owner"
                                 }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields:{
+                            owner: {
+                                $first: "$owner"
                             }
                         }
-                    ]
-                }
+                    }
+                ]
             }
+        }
         
     ])
 
@@ -510,6 +521,8 @@ const getWatchHistory = asyncHandler(async(req,res) => {
         )
     )
 })
+
+
 
 export { 
     registerUser,
