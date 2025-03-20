@@ -1,4 +1,4 @@
-import mongoose, {isValidObjectId} from "mongoose"
+import mongoose, {isValidObjectId, mongo} from "mongoose"
 import {Video} from "../models/video.model.js"
 import {User} from "../models/user.model.js"
 import ApiError from "../utils/ApiError.js"
@@ -8,8 +8,88 @@ import {deleteFromCloudinary, generateThumbnail, uploadOnCloudinary} from "../ut
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
+    const { 
+        page = 1, 
+        limit = 10, 
+        query="", 
+        sortBy="createdAt", 
+        sortType="desc", 
+        userId 
+    } = req.query
+    console.log("Queries: ",req.query);
+    
     //TODO: get all videos based on query, sort, pagination
+    
+    const options = {page,limit}
+    const aggregate = Video.aggregate([
+        {
+            $match: {
+                // owner: new mongoose.Types.ObjectId(userId),
+                isPublished: true,
+                title: {
+                    $regex: query,
+                    $options: 'i'
+                }
+            },
+        },
+        {
+            $sort: {
+                [sortBy]: sortType == 'desc' ? -1 : 1
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $project: {
+                            _id: 1,
+                            fullName: 1,
+                            username: 1,
+                            avatar: 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $addFields: {
+                owner: {
+                    $first: '$owner'
+                }
+            }
+        }
+    ])
+    const result = await Video.aggregatePaginate(aggregate,options)
+
+    // console.log("userId from query:", userId, "type:", typeof userId);
+    // const sampleVideo = await Video.findOne({ title: { $regex: 'clip', $options: 'i' } });
+    // console.log("sample video owner:", sampleVideo?.owner, "type:", typeof sampleVideo?.owner);
+    // console.log("Are equal?", String(sampleVideo?.owner) === String(userId));
+    // const conversion = new mongoose.Types.ObjectId(userId)
+    // console.log('After conversion: ')
+    // console.log("userId (converted):", conversion, "type:", typeof conversion);
+    // console.log("Are equal?", String(sampleVideo?.owner) == String(conversion));
+    
+    
+
+
+    if(result.totalDocs == 0){
+        throw new ApiError(404,'No video found')
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            result,
+            "Videos fetched successfully"
+        )
+    )
 })
 
 const publishAVideo = asyncHandler(async (req, res) => {
