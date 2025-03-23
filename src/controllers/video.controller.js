@@ -24,7 +24,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
     const aggregate = Video.aggregate([
         {
             $match: {
-                // owner: new mongoose.Types.ObjectId(userId),
+                owner: new mongoose.Types.ObjectId(userId),
                 isPublished: true,
                 title: {
                     $regex: query,
