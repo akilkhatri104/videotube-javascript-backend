@@ -151,6 +151,10 @@ const loginUser = asyncHandler( async  (req,res) => {
 })
 
 const logoutUser = asyncHandler( async(req,res)  => {
+    if(!req.user){
+        throw new ApiError(400,'User not logged in')
+    }
+    
     await User.findByIdAndUpdate(
         req.user._id,
         {
@@ -255,6 +259,10 @@ const changeCurrentPassword = asyncHandler( async(req,res) => {
 } )
 
 const getCurrentUser = asyncHandler( async(req,res) => {
+    if(!req.user){
+        throw new ApiError(400,'User not logged in')
+    }
+
     return res
     .status(200)
     .json(
@@ -265,6 +273,9 @@ const getCurrentUser = asyncHandler( async(req,res) => {
 } )
 
 const updateAccountDetails = asyncHandler(async(req,res) => {
+    if(!req.user){
+        throw new ApiError(400,'User not logged in')
+    }
     const {email,fullName} = req.body
 
     if(!fullName || !email){
@@ -300,6 +311,10 @@ const updateAccountDetails = asyncHandler(async(req,res) => {
 })
 
 const updateUserAvatar = asyncHandler(async(req,res) => {
+    if(!req.user){
+        throw new ApiError(400,'User not logged in')
+    }
+    
     const newAvatarLocalPath = req.file?.path
 
     if(!newAvatarLocalPath){
@@ -350,6 +365,10 @@ const updateUserAvatar = asyncHandler(async(req,res) => {
 })
 
 const updateUserCoverImage = asyncHandler(async(req,res) => {
+    if(!req.user){
+        throw new ApiError(400,'User not logged in')
+    }
+    
     const newCoverImageLocalPath = req.file?.path
 
     if(!newCoverImageLocalPath){
@@ -466,6 +485,9 @@ const getUserChannelProfile = asyncHandler(async(req,res) => {
 })
 
 const getWatchHistory = asyncHandler(async(req,res) => {
+    if(!req.user){
+        throw new ApiError(400,'User not logged in')
+    }
     
     const user = await User.aggregate([
         {
