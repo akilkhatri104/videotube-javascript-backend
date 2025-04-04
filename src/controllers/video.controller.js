@@ -294,6 +294,10 @@ const getVideoById = asyncHandler(async (req, res) => {
 })
 
 const updateVideo = asyncHandler(async (req, res) => {
+    if(!req.user){
+        throw new ApiError(400,'User not logged in')
+    }
+    
     const { videoId } = req.params
     //TODO: update video details like title, description, thumbnailUrl
     if(!videoId){
@@ -392,6 +396,10 @@ const updateVideo = asyncHandler(async (req, res) => {
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
+    if(!req.user){
+        throw new ApiError(400,'User not logged in')
+    }
+
     const { videoId } = req.params
     //TODO: delete video
     if(!videoId){
@@ -429,6 +437,10 @@ const deleteVideo = asyncHandler(async (req, res) => {
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
+    if(!req.user){
+        throw new ApiError(400,'User not logged in')
+    }
+
     const { videoId } = req.params
     if(!videoId){
         throw new ApiError(400,'No video id specified')
