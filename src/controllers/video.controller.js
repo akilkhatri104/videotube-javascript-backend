@@ -65,18 +65,6 @@ const getAllVideos = asyncHandler(async (req, res) => {
     ])
     const result = await Video.aggregatePaginate(aggregate,options)
 
-    // console.log("userId from query:", userId, "type:", typeof userId);
-    // const sampleVideo = await Video.findOne({ title: { $regex: 'clip', $options: 'i' } });
-    // console.log("sample video owner:", sampleVideo?.owner, "type:", typeof sampleVideo?.owner);
-    // console.log("Are equal?", String(sampleVideo?.owner) === String(userId));
-    // const conversion = new mongoose.Types.ObjectId(userId)
-    // console.log('After conversion: ')
-    // console.log("userId (converted):", conversion, "type:", typeof conversion);
-    // console.log("Are equal?", String(sampleVideo?.owner) == String(conversion));
-    
-    
-
-
     if(result.totalDocs == 0){
         throw new ApiError(404,'No video found')
     }
