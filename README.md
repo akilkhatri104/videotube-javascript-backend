@@ -8,6 +8,8 @@ A backend API project built with Node.js, Express, and MongoDB that provides fun
   - User registration and login
   - JWT based authentication
   - Role-based access control
+  - OTP-based email verification
+  - Secure password management
 
 - **User Operations**
   - Profile management
