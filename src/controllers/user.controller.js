@@ -5,6 +5,8 @@ import { deleteFromCloudinary, uploadOnCloudinary } from '../utils/cloudinary.js
 import { ApiResponse } from '../utils/ApiResponse.js'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
+import otpGenerator from 'otp-generator'
+import { OTP } from '../models/otp.model.js'
 
 const generateAccessAndRefreshTokens = async (userId) => {
     try {
@@ -543,7 +545,85 @@ const getWatchHistory = asyncHandler(async(req,res) => {
     )
 })
 
+const sendEmailVerificationOTP = asyncHandler(async (req,res) => {
 
+    if(!req.user){
+        throw new ApiError(400,'User needs to be logged in to verify their email')
+    }
+
+    if(req.user?.isEmailVerified === true){
+        throw new ApiError(400,'Email already verified')
+    }
+
+    let otp = otpGenerator.generate(6,{
+        upperCaseAlphabets: false,
+        lowerCaseAlphabets: false,
+        specialChars: false
+    })
+    let result = await OTP.findOne({otp: otp})
+    while(result){
+        let otp = otpGenerator.generate(6,{
+            upperCaseAlphabets: false,
+            lowerCaseAlphabets: false,
+            specialChars: false
+        })
+        result = await OTP.findOne({otp: otp})
+    }
+
+    let otpCreated = await OTP.create({email: req.user?.email,otp: otp})
+    if(!otpCreated){
+        throw new ApiError(500,'There was an error while sending OTP')
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            {},
+            'OTP sent succesfully'
+        )
+    )
+})
+
+const verifyEmailVerificationOTP = asyncHandler(async (req,res) => {
+    if(!req.user){
+        throw new ApiError(400,'User needs to be logged in to verify OTP')
+    }
+
+    if(req.user?.isEmailVerified === true){
+        throw new ApiError(400,'Email already verified')
+    }
+
+    const otp = req.body?.otp.trim()
+
+    if(!otp || otp.length != 6 || !/^[0-9]+$/.test(otp)){
+        throw new ApiError(400,'OTP must contain 6 digits')
+    }
+
+    const isOTPValid = await OTP.find({email: req.user?.email}).sort({createdAt: -1}).limit(1)
+    if(isOTPValid.length === 0 || otp !== isOTPValid[0].otp){
+        throw new ApiError(400,'The OTP is invalid')
+    }
+
+    const response = await User.findByIdAndUpdate(req.user?._id,{
+        isEmailVerified: true
+    },{new:true}).select('-password -refreshToken')
+
+    if(!response){
+        throw new ApiError(500,'There was an error while verifying email')
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            response,
+            'Email verifyied succesfully'
+        )
+    )
+})
 
 export { 
     registerUser,
@@ -556,5 +636,7 @@ export {
     updateUserAvatar,
     updateUserCoverImage,
     getUserChannelProfile,
-    getWatchHistory
+    getWatchHistory,
+    sendEmailVerificationOTP,
+    verifyEmailVerificationOTP
 }

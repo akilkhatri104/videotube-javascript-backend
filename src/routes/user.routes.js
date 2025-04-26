@@ -1,7 +1,9 @@
 import { Router } from "express";
-import { loginUser, logoutUser, registerUser, refreshAccessToken, updateUserAvatar, changeCurrentPassword, updateUserCoverImage, getCurrentUser, updateAccountDetails, getUserChannelProfile, getWatchHistory } from "../controllers/user.controller.js";
+import { loginUser, logoutUser, registerUser, refreshAccessToken, updateUserAvatar, changeCurrentPassword, updateUserCoverImage, getCurrentUser, updateAccountDetails, getUserChannelProfile, getWatchHistory,sendEmailVerificationOTP,
+    verifyEmailVerificationOTP } from "../controllers/user.controller.js";
 import { upload } from '../middlewares/multer.middleware.js'
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+
 
 const router = Router()
 
@@ -55,6 +57,16 @@ router.route('/c/:username').get(
 router.route('/history').get(
     verifyJWT,
     getWatchHistory
+)
+
+router.route('/send-email-otp').post(
+    verifyJWT,
+    sendEmailVerificationOTP,
+)
+
+router.route('/verify-email-otp').post(
+    verifyJWT,
+    verifyEmailVerificationOTP
 )
 
 export default router
