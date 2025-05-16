@@ -19,6 +19,14 @@ const playlistSchema = new Schema(
         owner: {
             type: Schema.Types.ObjectId,
             ref: 'User'
+        },
+        canUserModify: {
+            type: Boolean,
+            default: true,
+        },
+        isPublic: {
+            type: Boolean,
+            default: true
         }
     },
     {timestamps:true}

@@ -1,6 +1,7 @@
 import mongoose,{Schema} from 'mongoose'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
+import { Playlist } from './playlist.model.js'
 
 const userSchema = new Schema(
     {
@@ -36,10 +37,22 @@ const userSchema = new Schema(
         coverImage: {
             type: String, //cloudnary url
         },
-        watchHistory: [
+        watchHistory: {
+            type: Schema.Types.ObjectId,
+            ref: 'Playlist'
+        },
+        watchLater: {
+            type: Schema.Types.ObjectId,
+            ref: 'Playlist'
+        },
+        likedVideos: {
+            type: Schema.Types.ObjectId,
+            ref: 'Playlist'
+        },
+        savedPlaylists: [
             {
                 type: Schema.Types.ObjectId,
-                ref: 'Video'
+                ref: 'Playlist'
             }
         ],
         password: {
@@ -59,6 +72,29 @@ const userSchema = new Schema(
 userSchema.pre('save',async function(next) {
     if(this.isModified('password'))
         this.password = await bcrypt.hash(this.password,10)
+    if(this.isNew()){
+        const watchHistory = await Playlist.create({
+            name: 'Watch History',
+            owner: this._id,
+            isPublic: false,
+            isDefaultPlaylist: false
+        })
+        this.watchHistory = watchHistory._id
+        const watchLater = await Playlist.create({
+            name: 'Watch Later',
+            owner: this._id,
+            isPublic: false,
+            isDefaultPlaylist: false
+        })
+        this.watchLater = watchLater._id
+        const likedVideos = await Playlist.create({
+            name: 'Liked Videos',
+            owner: this._id,
+            isPublic: false,
+            isDefaultPlaylist: false
+        })
+        this.likedVideos = likedVideos._id
+    }
     next()
 })
 

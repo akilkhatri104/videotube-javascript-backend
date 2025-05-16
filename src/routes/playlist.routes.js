@@ -7,6 +7,9 @@ import {
     getUserPlaylists,
     removeVideoFromPlaylist,
     updatePlaylist,
+    togglePlalistVisiblity,
+    savePlaylist,
+    unsavePlaylist
 } from "../controllers/playlist.controller.js"
 import {verifyJWT} from "../middlewares/auth.middleware.js"
 
@@ -21,6 +24,10 @@ router
     .get(getPlaylistById)
     .patch(updatePlaylist)
     .delete(deletePlaylist);
+
+router.route("/toggle/:playlistId").patch(togglePlalistVisiblity);
+router.route("/save/:playlistId").post(savePlaylist);
+router.route("/unsave/:playlistId").post(unsavePlaylist);
 
 router.route("/add/:videoId/:playlistId").patch(addVideoToPlaylist);
 router.route("/remove/:videoId/:playlistId").patch(removeVideoFromPlaylist);

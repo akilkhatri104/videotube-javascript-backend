@@ -1,5 +1,6 @@
 import mongoose, {isValidObjectId} from "mongoose"
 import {Playlist} from "../models/playlist.model.js"
+import {User} from "../models/user.model.js"
 import { Video } from "../models/video.model.js"
 import ApiError from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
@@ -55,7 +56,8 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
     const playlists = await Playlist.aggregate([
         {
             $match: {
-                owner: new mongoose.Types.ObjectId(userId)
+                owner: new mongoose.Types.ObjectId(userId),
+                isPublic: true
             }
         },
         {
@@ -117,6 +119,16 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 
     if(!isValidObjectId(playlistId)){
         throw new ApiError(400,'Invalid playlist id')
+    }
+
+    const playlistExists = await Playlist.findById(playlistId)
+    if(!playlistExists){
+        throw new ApiError(404,'Playlist not found')
+    }
+
+    if(!playlistExists.isPublic && playlistExists.owner.toString() !== req.user?._id.toString()){
+        throw new ApiError(400,'Unauthorized request')
+        
     }
 
     const playlist = await Playlist.aggregate([
@@ -319,6 +331,10 @@ const updatePlaylist = asyncHandler(async (req, res) => {
         throw new ApiError(404,'No playlist found')
     }
 
+    if(!playlistExists.isDefaultPlaylist){
+        throw new ApiError(400,'User is not authorized to modify the playlist')
+    }
+
     if(playlistExists.owner.toString() !== req.user?._id.toString()){
         throw new ApiError(400,'User needs to be owner of playlist to update it')
     }
@@ -382,6 +398,103 @@ const updatePlaylist = asyncHandler(async (req, res) => {
     )
 })
 
+const togglePlalistVisiblity = asyncHandler(async (req,res) => {
+    const {playlistId} = req.params
+
+    if(!isValidObjectId(playlistId)){
+        throw new ApiError(400,'Invalid playlist id')
+    }
+
+    const playlistExists = await Playlist.findById(playlistId)
+    if(!playlistExists){
+        throw new ApiError(404,'No playlist found')
+    }
+
+    if(playlistExists.owner.toString() !== req.user?._id.toString()){
+        throw new ApiError(400,'User needs to be owner of playlist to update it')
+    }
+
+    playlistExists.isPublic = !playlistExists.isPublic
+    await playlistExists.save()
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            playlistExists,
+            'Playlist updated successfully'
+        )
+    )
+})
+
+const savePlaylist = asyncHandler(async (req, res) => {
+    const {playlistId} = req.params
+    //TODO: save playlist
+    if(!req.user){
+        throw new ApiError(400,'Unauthorized access')
+    }
+
+    if(!isValidObjectId(playlistId)){
+        throw new ApiError(400,'Invalid playlist id provided')
+    }
+
+    const playlistExists = await Playlist.findById(playlistId)
+    if(!playlistExists){
+        throw new ApiError(404,'No playlist found')
+    }
+
+    const user = await User.findById(req.user._id)
+    if(!user){
+        throw new ApiError(404,'No user found')
+
+    }
+
+    user.savedPlaylists.push(playlistId)
+    await user.save()
+    return res
+    .json(
+        new ApiResponse(
+            200,
+            {},
+            'Playlist saved successfully'
+        )
+    )
+})
+
+const unsavePlaylist = asyncHandler(async (req, res) => {
+    const {playlistId} = req.params
+    //TODO: unsave playlist
+    if(!req.user){
+        throw new ApiError(400,'Unauthorized access')
+    }
+
+    if(!isValidObjectId(playlistId)){
+        throw new ApiError(400,'Invalid playlist id provided')
+    }
+
+    const playlistExists = await Playlist.findById(playlistId)
+    if(!playlistExists){
+        throw new ApiError(404,'No playlist found')
+    }
+
+    const user = await User.findById(req.user._id)
+    if(!user){
+        throw new ApiError(404,'No user found')
+    }
+
+    user.savedPlaylists.pull(playlistId)
+    await user.save()
+    return res
+    .json(
+        new ApiResponse(
+            200,
+            {},
+            'Playlist unsaved successfully'
+        )
+    )
+})
+
 export {
     createPlaylist,
     getUserPlaylists,
@@ -389,5 +502,8 @@ export {
     addVideoToPlaylist,
     removeVideoFromPlaylist,
     deletePlaylist,
-    updatePlaylist
+    updatePlaylist,
+    togglePlalistVisiblity,
+    savePlaylist,
+    unsavePlaylist
 }
