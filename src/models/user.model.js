@@ -32,7 +32,6 @@ const userSchema = new Schema(
         },
         avatar: {
             type: String, //cloudnary url,
-            required: true,
         },
         coverImage: {
             type: String, //cloudnary url
@@ -72,7 +71,7 @@ const userSchema = new Schema(
 userSchema.pre('save',async function(next) {
     if(this.isModified('password'))
         this.password = await bcrypt.hash(this.password,10)
-    if(this.isNew()){
+    if(this.isNew){
         const watchHistory = await Playlist.create({
             name: 'Watch History',
             owner: this._id,
